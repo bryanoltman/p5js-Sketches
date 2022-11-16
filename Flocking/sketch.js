@@ -187,7 +187,6 @@ class Flocker {
   draw () {
     fill(255, 255, 255, 100)
     ellipse(
-      // Ensure position is in frame
       this.position.x,
       this.position.y,
       this.flockerSize,
