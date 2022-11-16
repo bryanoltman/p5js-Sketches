@@ -15,15 +15,29 @@ class Flocker {
   }
 
   /**
+   *
+   * @param {[Flocker]} flock
+   * @param {number} radius
+   * @returns
+   */
+  findNeighbors (flock, radius) {
+    let position = this.position
+    return flock.filter(function (flocker) {
+      let distance = flocker.position.dist(position)
+      return 0 < distance && distance < radius
+    })
+  }
+
+  /**
    * Updates acceleration, velocity, and position based on the other members of the flock
    *
    * @param {[Flocker]} flock the entire flock, including this flocker.
    */
   updateMovement (flock) {
-    var acceleration = createVector(0, 0)
+    let acceleration = createVector(0, 0)
 
     // The strength of the three steering vectors.
-    let separationWeight = 2.0
+    let separationWeight = 2.5
     let alignmentWeight = 1.0
     let coherenceWeight = 1.0
 
@@ -80,42 +94,36 @@ class Flocker {
    * @return {Vector} the separation vector
    */
   separate (flock) {
-    let desiredSeparationDistance = 25
-    var avoidedFlockerCount = 0
-    var steeringVector = createVector(0, 0)
-
-    for (const flocker of flock) {
-      let distance = this.position.dist(flocker.position)
-      let isTooClose = 0 < distance && distance < desiredSeparationDistance
-      if (!isTooClose) {
-        continue
-      }
-
-      // Subtract to get a avoidance vector
-      // ref: https://users.monash.edu/~cema/courses/FIT3094/lecturePDFs/lecture4a_VectorsSteering.pdf
-      let diff = p5.Vector.sub(this.position, flocker.position)
-      diff.normalize()
-
-      // Weight by distance.
-      diff.div(distance)
-      steeringVector.add(diff)
-      avoidedFlockerCount++
+    let neighborDistance = 25
+    let neighbors = this.findNeighbors(flock, neighborDistance)
+    if (neighbors.length == 0) {
+      return createVector(0, 0)
     }
 
-    // Average
-    if (avoidedFlockerCount > 0) {
-      steeringVector.div(avoidedFlockerCount)
-    }
+    let position = this.position
+    let averageDirectionAwayFromNeighbors = p5.Vector.div(
+      neighbors.reduce(function (accumulator, neighbor) {
+        let diff = p5.Vector.sub(position, neighbor.position)
 
-    if (steeringVector.mag() > 0) {
-      // Steering = Desired - Velocity
-      steeringVector.normalize()
-      steeringVector.mult(speedLimit)
-      steeringVector.sub(this.velocity)
+        // Weight by distance
+        diff.normalize()
+        diff.div(position.dist(neighbor.position))
+
+        accumulator.add(diff)
+        return accumulator
+      }, createVector(0, 0)),
+      neighbors.length
+    )
+
+    if (averageDirectionAwayFromNeighbors.mag() > 0) {
+      averageDirectionAwayFromNeighbors.normalize()
+      averageDirectionAwayFromNeighbors.mult(speedLimit)
+      let steeringVector = averageDirectionAwayFromNeighbors.sub(this.velocity)
       steeringVector.limit(maximumSteeringForce)
+      return steeringVector
     }
 
-    return steeringVector
+    return createVector(0, 0)
   }
 
   /**
@@ -124,17 +132,55 @@ class Flocker {
    * @return {Vector} the alignment vector
    */
   align (flock) {
-    var steeringVector = createVector(0, 0)
+    let neighborDistance = 50
+    let neighbors = this.findNeighbors(flock, neighborDistance)
+    if (neighbors.length == 0) {
+      return createVector(0, 0)
+    }
+
+    let averageVelocity = p5.Vector.div(
+      neighbors.reduce(function (accumulator, flocker) {
+        accumulator.add(flocker.velocity)
+        return accumulator
+      }, createVector(0, 0)),
+      neighbors.length
+    )
+
+    averageVelocity.normalize()
+    averageVelocity.mult(speedLimit)
+
+    let steeringVector = p5.Vector.sub(averageVelocity, this.velocity)
+    steeringVector.limit(maximumSteeringForce)
+
     return steeringVector
   }
 
   /**
    * @param {[Flocker]} flock
    *
-   * @return {Vector} the coherence vector
+   * @return {Vector} a steering vector towards the center (i.e., average location) of neighboring flockers
    */
   cohere (flock) {
-    var steeringVector = createVector(0, 0)
+    let neighborDistance = 50
+    let neighbors = this.findNeighbors(flock, neighborDistance)
+    if (neighbors.length == 0) {
+      return createVector(0, 0)
+    }
+
+    let averagePosition = p5.Vector.div(
+      neighbors.reduce(function (accumulator, flocker) {
+        accumulator.add(flocker.position)
+        return accumulator
+      }, createVector(0, 0)),
+      neighbors.length
+    )
+
+    let target = p5.Vector.sub(averagePosition, this.position)
+    target.normalize()
+    target.mult(speedLimit)
+
+    let steeringVector = p5.Vector.sub(target, this.velocity)
+    steeringVector.limit(maximumSteeringForce)
     return steeringVector
   }
 
