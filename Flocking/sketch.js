@@ -115,15 +115,17 @@ class Flocker {
       neighbors.length
     )
 
-    if (averageDirectionAwayFromNeighbors.mag() > 0) {
-      averageDirectionAwayFromNeighbors.normalize()
-      averageDirectionAwayFromNeighbors.mult(speedLimit)
-      let steeringVector = averageDirectionAwayFromNeighbors.sub(this.velocity)
-      steeringVector.limit(maximumSteeringForce)
-      return steeringVector
+    if (averageDirectionAwayFromNeighbors.mag() <= 0) {
+      return createVector(0, 0)
     }
 
-    return createVector(0, 0)
+    averageDirectionAwayFromNeighbors.normalize()
+    averageDirectionAwayFromNeighbors.mult(speedLimit)
+
+    let steeringVector = averageDirectionAwayFromNeighbors.sub(this.velocity)
+    steeringVector.limit(maximumSteeringForce)
+
+    return steeringVector
   }
 
   /**
@@ -181,6 +183,7 @@ class Flocker {
 
     let steeringVector = p5.Vector.sub(target, this.velocity)
     steeringVector.limit(maximumSteeringForce)
+
     return steeringVector
   }
 
