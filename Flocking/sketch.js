@@ -122,7 +122,10 @@ class Flocker {
     averageDirectionAwayFromNeighbors.normalize()
     averageDirectionAwayFromNeighbors.mult(speedLimit)
 
-    let steeringVector = averageDirectionAwayFromNeighbors.sub(this.velocity)
+    let steeringVector = p5.Vector.sub(
+      averageDirectionAwayFromNeighbors,
+      this.velocity
+    )
     steeringVector.limit(maximumSteeringForce)
 
     return steeringVector
