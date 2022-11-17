@@ -1,7 +1,9 @@
 let flock = []
-let flockSize = 100
+let flockSize = 200
 let speedLimit = 3
 let maximumSteeringForce = 0.05
+
+let directionCheckbox, separateCheckbox, alignCheckbox, cohereCheckbox
 
 class Flocker {
   /**
@@ -11,7 +13,7 @@ class Flocker {
   constructor (x, y) {
     this.velocity = p5.Vector.random2D()
     this.position = createVector(x, y)
-    this.flockerSize = 23
+    this.flockerSize = 15
   }
 
   /**
@@ -41,20 +43,26 @@ class Flocker {
     let alignmentWeight = 1.0
     let coherenceWeight = 1.0
 
-    // Flockers should give each other breathing room
-    let separationVector = this.separate(flock)
-    separationVector.mult(separationWeight)
-    acceleration.add(separationVector)
+    if (separateCheckbox.checked()) {
+      // Flockers should give each other breathing room
+      let separationVector = this.separate(flock)
+      separationVector.mult(separationWeight)
+      acceleration.add(separationVector)
+    }
 
-    // Flockers should go in the same direction
-    let alignmentVector = this.align(flock)
-    alignmentVector.mult(alignmentWeight)
-    acceleration.add(alignmentVector)
+    if (alignCheckbox.checked()) {
+      // Flockers should go in the same direction
+      let alignmentVector = this.align(flock)
+      alignmentVector.mult(alignmentWeight)
+      acceleration.add(alignmentVector)
+    }
 
-    // Flockers should group together
-    let coherenceVector = this.cohere(flock)
-    coherenceVector.mult(coherenceWeight)
-    acceleration.add(coherenceVector)
+    if (cohereCheckbox.checked()) {
+      // Flockers should group together
+      let coherenceVector = this.cohere(flock)
+      coherenceVector.mult(coherenceWeight)
+      acceleration.add(coherenceVector)
+    }
 
     this.velocity.add(acceleration)
     this.boundVelocity()
@@ -190,14 +198,53 @@ class Flocker {
     return steeringVector
   }
 
+  /**
+   * If showing direction: draws a triangle centered on this.position and pointed in the direction of this.velocity.
+   * If not showing direction: draws a circle centered on this.position.
+   */
   draw () {
+    let x = this.position.x
+    let y = this.position.y
     fill(255, 255, 255, 100)
-    ellipse(
-      this.position.x,
-      this.position.y,
-      this.flockerSize,
-      this.flockerSize
-    )
+    stroke(255, 255, 255, 100)
+
+    if (directionCheckbox.checked()) {
+      push()
+      translate(x, y)
+      rotate(this.velocity.heading() + Math.PI / 2.0)
+
+      let topAngle = PI
+      let bottomRightAngle = Math.PI / 6.0
+      let bottomLeftAngle = Math.PI / -6.0
+
+      let top = createVector(
+        Math.sin(topAngle) * this.flockerSize,
+        Math.cos(topAngle) * this.flockerSize
+      )
+
+      let bottomRight = createVector(
+        Math.sin(bottomRightAngle) * this.flockerSize,
+        Math.cos(bottomRightAngle) * this.flockerSize
+      )
+
+      let bottomLeft = createVector(
+        Math.sin(bottomLeftAngle) * this.flockerSize,
+        Math.cos(bottomLeftAngle) * this.flockerSize
+      )
+
+      triangle(
+        bottomLeft.x,
+        bottomLeft.y,
+        top.x,
+        top.y,
+        bottomRight.x,
+        bottomRight.y
+      )
+
+      pop()
+    } else {
+      ellipse(x, y, this.flockerSize, this.flockerSize)
+    }
   }
 }
 
@@ -208,6 +255,11 @@ function setup () {
   for (var i = 0; i < flockSize; i++) {
     flock.push(new Flocker(random(canvasSize), random(canvasSize)))
   }
+
+  directionCheckbox = createCheckbox('Show Direction', false)
+  separateCheckbox = createCheckbox('Separate', true)
+  alignCheckbox = createCheckbox('Align', true)
+  cohereCheckbox = createCheckbox('Cohere', true)
 }
 
 function draw () {
