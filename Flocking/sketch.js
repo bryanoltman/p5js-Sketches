@@ -260,6 +260,16 @@ function setup () {
   separateCheckbox = createCheckbox('Separate', true)
   alignCheckbox = createCheckbox('Align', true)
   cohereCheckbox = createCheckbox('Cohere', true)
+
+  let resetButton = createButton('Reset')
+  resetButton.mousePressed(this.reset)
+}
+
+function reset () {
+  for (const flocker of flock) {
+    flocker.position = createVector(random(width), random(height))
+    flocker.velocity = p5.Vector.random2D()
+  }
 }
 
 function draw () {
